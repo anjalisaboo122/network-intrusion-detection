@@ -12,6 +12,8 @@ Designed as a portfolio project for ML engineering and security-focused AI roles
 
 ## 🚀 Live Demo
 
+![Demo](working_demo.gif)
+
 👉 [Streamlit App](https://network-intrusion-detection-122.streamlit.app/)
 
 Upload network traffic data (NSL-KDD format) to get:
