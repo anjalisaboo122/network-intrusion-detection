@@ -14,8 +14,7 @@ A production-style machine learning system that classifies network traffic into 
 
 Upload any NSL-KDD formatted CSV to get live intrusion predictions with per-record SHAP explanations.
 
-*(Add your demo.gif here once recorded)*
-
+![Demo](working_demo.gif)
 ---
 
 ## 📈 Key Results
