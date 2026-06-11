@@ -116,7 +116,7 @@ nids-ml/
 
 ## 🚀 Quick Start
 
-git clone https://github.com/YOURUSERNAME/nids-ml.git
+git clone https://github.com/anjalisaboo122/network-intrusion-detection.git
 cd nids-ml
 
 pip install -r requirements.txt
