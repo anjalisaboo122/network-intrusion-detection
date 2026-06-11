@@ -1,39 +1,61 @@
-# 🛡️ Network Intrusion Detection System (ML-Based)
+# 🛡️ Network Intrusion Detection System (Multi-Dataset ML System)
 
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://network-intrusion-detection-122.streamlit.app/)
 ![Python](https://img.shields.io/badge/Python-3.10+-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-A production-style machine learning system that classifies network traffic into attack categories in real time, with explainable predictions via SHAP. Built as a portfolio project targeting ML engineering roles.
+A production-style **machine learning system for network intrusion detection**, supporting multiple benchmark datasets (NSL-KDD + UNSW-NB15). The system performs multiclass attack classification, handles extreme class imbalance, and provides explainable predictions.
 
-**[→ Live Demo](https://network-intrusion-detection-122.streamlit.app/)**
+Designed as a portfolio project for ML engineering and security-focused AI roles.
 
 ---
 
-## 📊 Demo
+## 🚀 Live Demo
 
-Upload any NSL-KDD formatted CSV to get live intrusion predictions with per-record SHAP explanations.
+👉 [Streamlit App](https://network-intrusion-detection-122.streamlit.app/)
 
-![Demo](working_demo.gif)
+Upload network traffic data (NSL-KDD format) to get:
+- Real-time predictions
+- Attack category classification
+- Model confidence scores
+- SHAP-based explanations (feature importance per prediction)
+
 ---
 
-## 📈 Key Results
+## 📊 Key Results
 
-| Model | Test Macro F1 | CV Macro F1 | Accuracy |
-|------|--------------|--------------|----------|
+### 🔹 NSL-KDD Dataset
+
+| Model | Macro F1 | CV Macro F1 | Accuracy |
+|------|----------|-------------|----------|
 | XGBoost | **0.5728** | 0.9349 ± 0.0272 | 79.4% |
 | Random Forest | 0.4855 | 0.9034 ± 0.0471 | 74.1% |
 
-### Why Macro F1 and not accuracy?
+---
 
-The dataset is heavily imbalanced — Normal traffic accounts for ~53% of test samples. A model predicting only Normal would still get ~53% accuracy while missing all attacks. Macro F1 treats all classes equally and reflects true performance.
+### 🔹 UNSW-NB15 Dataset (Generalization Test)
+
+| Model | Macro F1 | Accuracy |
+|------|----------|----------|
+| Random Forest | **0.6310** | 78% |
+| XGBoost | 0.5855 | 76% |
 
 ---
 
-### 📌 Per-class breakdown (XGBoost)
+### 📌 Why Macro F1?
 
-| Class | Precision | Recall | F1 |
-|------|----------|--------|----|
+The dataset is highly imbalanced. For example:
+- Normal traffic dominates (~50%+ of samples)
+- Rare attacks (R2L, U2R) are extremely underrepresented
+
+Accuracy alone is misleading — Macro F1 ensures **equal weight to all attack classes**, making it the correct evaluation metric.
+
+---
+
+## 📌 Per-Class Performance (NSL-KDD — XGBoost)
+
+| Class | Precision | Recall | F1-score |
+|------|----------|--------|----------|
 | DoS | 0.96 | 0.84 | 0.90 |
 | Normal | 0.70 | 0.97 | 0.82 |
 | Probe | 0.82 | 0.80 | 0.81 |
@@ -42,113 +64,156 @@ The dataset is heavily imbalanced — Normal traffic accounts for ~53% of test s
 
 ---
 
-## 🔍 Key Finding — Train/Test Distribution Shift
+## 🔍 Key Insights
 
-The large gap between CV score (~0.93) and test score (~0.57) is not overfitting. It is a known property of the NSL-KDD dataset: the test set (KDDTest+) has a different attack distribution than the training set.
+### 1. Dataset Shift Problem
+A significant drop between cross-validation (~0.93) and test score (~0.57) is due to **distribution shift in NSL-KDD**, not overfitting.
 
-Specifically, R2L attacks increase from ~0.8% in training to ~12% in testing. The model has limited exposure to these patterns, leading to poor generalization on rare attack types.
+The test set contains:
+- Higher proportion of R2L attacks
+- Different attack distribution than training data
 
-This reflects a real-world intrusion detection challenge: attack distributions evolve over time. Addressing this would require continual learning or periodic retraining.
+This reflects a real-world security problem: **attack distributions evolve over time**.
 
 ---
 
-## 🏗️ Architecture
+### 2. Cross-Dataset Generalization (UNSW-NB15)
 
-NSL-KDD Dataset
-│
-├── preprocess.py
-│   ├── OrdinalEncoder (protocol_type, service, flag)
-│   ├── StandardScaler (numeric features)
-│   └── ColumnTransformer (fit on train only)
-│
-├── train.py
-│   ├── SMOTE (class balancing)
-│   ├── Random Forest
-│   └── XGBoost
-│
-├── explain.py
-│   ├── SHAP TreeExplainer
-│   ├── Global beeswarm plots
-│   └── Local waterfall explanations
-│
-└── app.py (Streamlit)
-    ├── CSV upload
-    ├── Live predictions
-    ├── Confidence scores
-    └── SHAP explanations
+Adding UNSW-NB15 demonstrates:
+- Model performance varies significantly across datasets
+- Random Forest generalizes better on UNSW
+- XGBoost performs better on NSL-KDD
+
+👉 This confirms that intrusion detection is **dataset-dependent and non-stationary**
+
+---
+
+## 🏗️ System Architecture
+             ┌─────────────────────┐
+             │   NSL-KDD Dataset   │
+             └─────────┬───────────┘
+                       │
+             ┌─────────▼───────────┐
+             │   Preprocessing     │
+             │ ─ Encoding          │
+             │ ─ Scaling           │
+             │ ─ Feature selection  │
+             └─────────┬───────────┘
+                       │
+             ┌─────────▼───────────┐
+             │  SMOTE Balancing    │
+             └─────────┬───────────┘
+                       │
+    ┌──────────────────┴──────────────────┐
+    ▼                                     ▼
+    ┌─────────────────┐ ┌─────────────────┐
+    │ Random Forest │ │ XGBoost │
+    └────────┬────────┘ └────────┬────────┘
+    │ │
+    └────────────┬───────────────────┘
+    ▼
+    ┌────────────────────────────┐
+    │ Evaluation (Macro F1, CV) │
+    └────────────┬───────────────┘
+    ▼
+    ┌────────────────────────────┐
+    │ SHAP Explainability Layer │
+    └────────────┬───────────────┘
+    ▼
+    ┌────────────────────────────┐
+    │ Streamlit Web Application │
+    └────────────────────────────┘
+
 
 ---
 
 ## ⚙️ Technical Decisions
 
-### Why OrdinalEncoder?
-Avoids incorrect ordering assumptions from LabelEncoder and safely handles unseen categories.
+### ✔ Ordinal Encoding
+Used for categorical features (protocol, service, flag) to avoid sparse explosion.
 
-### Why SMOTE?
-Balances extreme class imbalance (e.g., R2L: 995 vs Normal: 67,343) by generating synthetic minority samples.
+### ✔ SMOTE
+Handles extreme class imbalance (e.g., U2R: <0.1% of data).
 
-### Why Macro F1?
-Ensures equal importance for all attack classes, especially rare but critical ones.
+### ✔ Macro F1 Optimization
+Ensures equal importance across all attack types.
 
-### Why avoid SMOTE before CV?
-Prevents data leakage. SMOTE is applied only on training data, CV is performed on original distribution.
+### ✔ Cross-Dataset Validation
+UNSW-NB15 added to test generalization beyond NSL-KDD.
+
+### ✔ No Data Leakage in CV
+SMOTE applied only on training set (not validation folds).
 
 ---
 
 ## 📁 Project Structure
 
+```bash
 nids-ml/
+│
 ├── preprocess.py
 ├── train.py
 ├── explain.py
 ├── visualize.py
 ├── main.py
 ├── app.py
-├── requirements.txt
+│
+├── preprocess_unsw.py
+├── run_unsw.py
+│
 ├── results/
 │   ├── confusion_matrix.png
 │   ├── feature_importance.png
 │   ├── shap_summary.png
-│   └── shap_waterfall_*.png
+│
+├── rf_model.pkl
+├── rf_model_unsw.pkl
+│
 └── README.md
 
----
+📦 Datasets
+NSL-KDD
+125,973 training samples
+22,544 test samples
+41 features
+5 attack categories
 
-## 🚀 Quick Start
+https://www.unb.ca/cic/datasets/nsl.html
 
-git clone https://github.com/anjalisaboo122/network-intrusion-detection.git
+UNSW-NB15
+175,341 training samples
+82,332 test samples
+Modern network attack dataset
+Used for generalization testing
+
+https://research.unsw.edu.au/projects/unsw-nb15-dataset
+
+🚀 Quick Start
+git clone https://github.com/your-repo/nids-ml.git
 cd nids-ml
 
 pip install -r requirements.txt
 
-# Download dataset
-# Place KDDTrain+.txt and KDDTest+.txt in root
-
+# Run NSL-KDD pipeline
 python main.py
-python explain.py
+
+# Run UNSW-NB15 pipeline
+python run_unsw.py
+
+# Launch dashboard
 streamlit run app.py
 
----
+⚠️ Limitations
+Low recall on rare attacks (R2L, U2R)
+Dataset shift affects generalization
+No live network packet ingestion yet
+No continuous retraining pipeline
+🔮 Future Work
+Real-time packet capture integration (Wireshark/Scapy)
+Streaming inference pipeline
+Continual learning system
+Model calibration for rare attacks
+Deployment as API service
+📜 License
 
-## 📦 Dataset
-
-NSL-KDD — University of New Brunswick  
-125,973 training samples | 22,544 test samples  
-41 features | 5 attack categories  
-
-https://www.unb.ca/cic/datasets/nsl.html
-
----
-
-## ⚠️ Limitations & Future Work
-
-- R2L and U2R have low recall due to dataset distribution shift  
-- Only evaluated on NSL-KDD  
-- No live packet ingestion pipeline  
-- No continuous retraining mechanism  
-
----
-
-## 📜 License
-
-MIT
+MIT License
